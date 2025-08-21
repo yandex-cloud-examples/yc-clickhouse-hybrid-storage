@@ -66,21 +66,28 @@ resource "yandex_mdb_clickhouse_cluster" "clickhouse-cluster" {
     subnet_id        = yandex_vpc_subnet.subnet-a.id
     assign_public_ip = true # Required for connection from Internet.
   }
-
-  database {
-    name = local.db_name
-  }
-
-  user {
-    name     = local.db_username
-    password = local.db_password
-    permission {
-      database_name = local.db_name
-    }
+  
+  lifecycle {
+    ignore_changes = [database, user,]
   }
 
   # Enable hybrid storage
   cloud_storage {
     enabled = true
+  }
+}
+
+resource "yandex_mdb_clickhouse_database" "db" {
+  cluster_id = yandex_mdb_clickhouse_cluster.clickhouse-cluster.id
+  name       = local.db_name
+}
+
+resource "yandex_mdb_clickhouse_user" "user" {
+  cluster_id = yandex_mdb_clickhouse_cluster.clickhouse-cluster.id
+  name       = local.db_username
+  password   = local.db_password
+
+  permission {
+    database_name = yandex_mdb_clickhouse_database.db.name
   }
 }
